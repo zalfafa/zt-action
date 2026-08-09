@@ -17,7 +17,7 @@ inputs:
   api_url:
     description: "ZeroTier Central API URL"
     required: false
-    default: "https://my.zerotier.com/api/v1"
+    default: "https://api.zerotier.com/api/v1"
 
 runs:
   using: "composite"
