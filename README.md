@@ -1,5 +1,5 @@
 # ZeroTier GitHub Action
-
+[![zerotier](https://github.com/zalfafa/zt-action/actions/workflows/build.yml/badge.svg)](https://github.com/zalfafa/zt-action/actions/workflows/build.yml)
 
 ZeroTier is an SDN platform that allows users to create virtual
 networks that can span multiple devices, locations, and cloud
@@ -13,7 +13,7 @@ authorizing runners onto private ZeroTier networks.
 
 ```yaml
 - name: ZeroTier
-  uses: zalfafa/zt-action@v1.0.4
+  uses: zalfafa/zt-action@v1.0.5
   with:
     network_id: ${{ secrets.ZEROTIER_NETWORK_ID }}
     auth_token: ${{ secrets.ZEROTIER_CENTRAL_TOKEN }}
@@ -30,7 +30,7 @@ It then uses the supplied `auth_token` to authorize the runner onto the network.
 
 ```yaml
 - name: ZeroTier
-  uses: zalfafa/zt-action@v1.0.4
+  uses: zalfafa/zt-action@v1.0.5
   with:
     network_id: ${{ secrets.ZEROTIER_NETWORK_ID }}
     auth_token: ${{ secrets.ZEROTIER_CENTRAL_TOKEN }}
@@ -56,7 +56,7 @@ By default the runner gets an IP auto-assigned from the network pool. To pin the
 
 ```yaml
 - name: ZeroTier
-  uses: zalfafa/zt-action@v1.0.4
+  uses: zalfafa/zt-action@v1.0.5
   with:
     network_id: ${{ secrets.ZEROTIER_NETWORK_ID }}
     auth_token: ${{ secrets.ZEROTIER_CENTRAL_TOKEN }}

@@ -2,10 +2,78 @@ name: zerotier
 on: [ push ]
 
 jobs:
+  serve:
+    runs-on: ubuntu-latest
+    steps:
+      - name: checkout
+        uses: actions/checkout@v7
+
+      - name: ZeroTier serve
+        uses: ./                              # local action under test
+        with:
+          network_id: ${{ secrets.ZEROTIER_NETWORK_ID }}
+          auth_token: ${{ secrets.ZEROTIER_CENTRAL_TOKEN }}
+          ip_assignments: "10.3.10.100"
+
+      - name: serve
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUN_ID: ${{ github.run_id }}
+          REPO: ${{ github.repository }}
+        run: |
+          python3 - <<'EOF' &
+          import http.server, threading, os
+      
+          class H(http.server.BaseHTTPRequestHandler):
+              def do_GET(self):
+                  if self.path == '/shutdown':
+                      self.send_response(200)
+                      self.end_headers()
+                      threading.Thread(
+                          target=os._exit,
+                          args=(0,)
+                      ).start()
+                  else:
+                      with open('/tmp/zt-hits', 'a') as f:
+                          f.write(
+                              self.headers.get('X-Build-Id', '') + '\n'
+                          )
+      
+                      self.send_response(200)
+                      self.end_headers()
+                      self.wfile.write(b'serve ok')
+      
+              def log_message(self, *a):
+                  pass
+      
+          http.server.HTTPServer(
+              ('0.0.0.0', 8000),
+              H
+          ).serve_forever()
+          EOF
+      
+          : > /tmp/zt-hits
+      
+          while true; do
+            ok=$(sort -u /tmp/zt-hits 2>/dev/null |
+              sed '/^$/d' |
+              wc -l)
+      
+            echo "hits: $ok/3"
+      
+            [ "${ok:-0}" -ge 3 ] && break
+      
+            sleep 5
+          done
+      
+          echo "All build jobs reached serve."
+          cat /tmp/zt-hits
+
   build:
     strategy:
+      fail-fast: false
       matrix:
-        # os: [ ubuntu-latest ]
         os: [ ubuntu-latest, macos-latest, windows-latest ]
     runs-on: ${{ matrix.os }}
     steps:
@@ -13,43 +81,20 @@ jobs:
         uses: actions/checkout@v7
 
       - name: zerotier
-        uses: ./
+        uses: ./                              # local action under test
         with:
           network_id: ${{ secrets.ZEROTIER_NETWORK_ID }}
           auth_token: ${{ secrets.ZEROTIER_CENTRAL_TOKEN }}
 
-      - name: ping host
+      # the serve member is at 10.3.10.100 for this run only (no ZEROTIER_HOST_IP secret needed)
+      # TCP check instead of ICMP: ZeroTier paths between runners are often ICMP-unreliable in CI
+      - name: test serve (TCP)
         shell: bash
         run: |
-          count=10
-          while ! ping -c 1 ${{ secrets.ZEROTIER_HOST_IP }} ; do
-            echo "waiting..." ;
-            sleep 1 ;
-            let count=count-1
+          count=30
+          while ! curl -sf -H "X-Build-Id: $GITHUB_RUN_ID-${{ matrix.os }}" \
+            http://10.3.10.100:8000/ >/dev/null; do
+            echo "waiting..." ; sleep 2 ; let count=count-1
+            [ $count -le 0 ] && { echo "serve never reachable"; exit 1; }
           done
-          echo "ping success"
-
-  test:
-    strategy:
-      matrix:
-        # os: [ ubuntu-latest ]
-        os: [ ubuntu-latest, macos-latest, windows-latest ]
-    runs-on: ${{ matrix.os }}
-    if: ${{ github.ref_name }} == "main"
-    steps:
-      - name: zerotier
-        uses: zalfafa/zt-action@main
-        with:
-          network_id: ${{ secrets.ZEROTIER_NETWORK_ID }}
-          auth_token: ${{ secrets.ZEROTIER_CENTRAL_TOKEN }}
-
-      - name: ping host
-        shell: bash
-        run: |
-          count=10
-          while ! ping -c 1 ${{ secrets.ZEROTIER_HOST_IP }} ; do
-            echo "waiting..." ;
-            sleep 1 ;
-            let count=count-1
-          done
-          echo "ping success"
+          echo "serve test success"
