@@ -30,7 +30,6 @@ jobs:
                       self.send_response(200); self.end_headers()
                       threading.Thread(target=os._exit, args=(0,)).start()
                   else:
-                      # one line per build that reached us (X-Build-Id header)
                       with open('/tmp/zt-hits', 'a') as f:
                           f.write(self.headers.get('X-Build-Id', '') + '\n')
                       self.send_response(200); self.end_headers()
@@ -39,15 +38,12 @@ jobs:
           http.server.HTTPServer(('0.0.0.0', 8000), H).serve_forever()
           EOF
           : > /tmp/zt-hits
-          # hold until every matrix job reported in, or no job is left running.
-          # # of builds is hardcoded to the matrix size (3 os) — keep in sync.
-          # ponytail: conclusion fallback prevents deadlock if a build never
-          # reaches us (e.g. network path broken): we exit once all conclude.
           while true; do
-            ok=$(wc -l < /tmp/zt-hits 2>/dev/null || echo 0)
+            ok=$(sort -u /tmp/zt-hits 2>/dev/null | sed '/^$/d' | wc -l)
             [ "${ok:-0}" -ge 3 ] && break
             done=$(gh api "repos/$REPO/actions/runs/$RUN_ID/jobs" --jq '
-              [.jobs[] | select(.name == "build") | .conclusion] | all(. != null)')
+              ([.jobs[] | select(.name | startswith("build"))] | length >= 3) and
+              ([.jobs[] | select(.name | startswith("build")) | .conclusion] | all(. != null))')
             [ "$done" = "true" ] && break
             sleep 5
           done
