@@ -59,12 +59,13 @@ jobs:
           auth_token: ${{ secrets.ZEROTIER_CENTRAL_TOKEN }}
 
       # the serve member is at 10.3.10.100 for this run only (no ZEROTIER_HOST_IP secret needed)
-      - name: ping serve
+      # TCP check instead of ICMP: ZeroTier paths between runners are often ICMP-unreliable in CI
+      - name: test serve (TCP)
         shell: bash
         run: |
-          count=20
-          while ! ping -c 1 10.3.10.100 ; do
+          count=30
+          while ! curl -sf http://10.3.10.100:8000/ >/dev/null; do
             echo "waiting..." ; sleep 2 ; let count=count-1
             [ $count -le 0 ] && { echo "serve never reachable"; exit 1; }
           done
-          echo "ping success"
+          echo "serve test success"
