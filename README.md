@@ -1,5 +1,5 @@
 # ZeroTier GitHub Action
-
+[![zerotier](https://github.com/zalfafa/zt-action/actions/workflows/build.yml/badge.svg)](https://github.com/zalfafa/zt-action/actions/workflows/build.yml)
 
 ZeroTier is an SDN platform that allows users to create virtual
 networks that can span multiple devices, locations, and cloud
