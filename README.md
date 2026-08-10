@@ -65,6 +65,26 @@ By default the runner gets an IP auto-assigned from the network pool. To pin the
 
 The IPs must be inside the network's `ipAssignmentPools`. When set, the runner is exempted from auto-assignment (`noAutoAssignIps`) so the pool won't overwrite the manual IPs.
 
+## Custom member name and description
+
+By default the runner appears in ZeroTier Central as `Zerotier GitHub Member <short-sha>`. You can override the name and description shown in the dashboard:
+
+```yaml
+- name: ZeroTier
+  uses: zalfafa/zt-action@v1.0.5
+  with:
+    network_id: ${{ secrets.ZEROTIER_NETWORK_ID }}
+    auth_token: ${{ secrets.ZEROTIER_CENTRAL_TOKEN }}
+    member_name: "CI Runner - ${{ github.ref_name }}"
+    member_description: "Deploy runner for PR #${{ github.event.pull_request.number }}"
+```
+
+## Features
+
+- **Skip installation** – If ZeroTier is already installed on the runner (e.g. self-hosted runners), the action skips the installation step for faster execution.
+- **Join timeout** – The action waits up to 60 seconds for the network status to become `OK`. If the timeout is reached, the workflow fails with a clear error message instead of hanging indefinitely.
+- **Automatic cleanup** – After the workflow completes, a `post` step automatically removes the runner from the network.
+
 ## Inputs
 
 | Input | Required | Default | Description |
@@ -73,3 +93,6 @@ The IPs must be inside the network's `ipAssignmentPools`. When set, the runner i
 | `auth_token` | ✅ | — | ZeroTier Central API access token |
 | `api_url` | ❌ | `https://api.zerotier.com/api/v1` | ZeroTier Central API URL |
 | `ip_assignments` | ❌ | *(empty)* | Comma-separated IPs to assign to the runner (e.g. `10.0.0.5`). Empty = auto-assign from the pool |
+| `member_name` | ❌ | *(auto)* | Custom name for the member in ZeroTier Central |
+| `member_description` | ❌ | *(auto)* | Custom description for the member in ZeroTier Central |
+

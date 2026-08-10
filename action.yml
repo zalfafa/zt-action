@@ -19,6 +19,14 @@ inputs:
     description: "Comma-separated list of IPs to assign to the runner (e.g. 10.0.0.5,10.0.0.6). Empty for auto-assign"
     required: false
     default: ""
+  member_name:
+    description: "Custom name for the member in ZeroTier Central. Defaults to 'Zerotier GitHub Member <short-sha>'"
+    required: false
+    default: ""
+  member_description:
+    description: "Custom description for the member in ZeroTier Central. Defaults to a link to the workflow run"
+    required: false
+    default: ""
 
 runs:
   using: "composite"
@@ -30,6 +38,8 @@ runs:
         AUTH_TOKEN: ${{ inputs.auth_token }}
         NETWORK_ID: ${{ inputs.network_id }}
         IP_ASSIGNMENTS: ${{ inputs.ip_assignments }}
+        MEMBER_NAME: ${{ inputs.member_name }}
+        MEMBER_DESCRIPTION: ${{ inputs.member_description }}
       with:
         main: $GITHUB_ACTION_PATH/main.sh
         post: $GITHUB_ACTION_PATH/post.sh
