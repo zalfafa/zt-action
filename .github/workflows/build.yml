@@ -24,29 +24,51 @@ jobs:
         run: |
           python3 - <<'EOF' &
           import http.server, threading, os
+      
           class H(http.server.BaseHTTPRequestHandler):
               def do_GET(self):
                   if self.path == '/shutdown':
-                      self.send_response(200); self.end_headers()
-                      threading.Thread(target=os._exit, args=(0,)).start()
+                      self.send_response(200)
+                      self.end_headers()
+                      threading.Thread(
+                          target=os._exit,
+                          args=(0,)
+                      ).start()
                   else:
                       with open('/tmp/zt-hits', 'a') as f:
-                          f.write(self.headers.get('X-Build-Id', '') + '\n')
-                      self.send_response(200); self.end_headers()
+                          f.write(
+                              self.headers.get('X-Build-Id', '') + '\n'
+                          )
+      
+                      self.send_response(200)
+                      self.end_headers()
                       self.wfile.write(b'serve ok')
-              def log_message(self, *a): pass
-          http.server.HTTPServer(('0.0.0.0', 8000), H).serve_forever()
+      
+              def log_message(self, *a):
+                  pass
+      
+          http.server.HTTPServer(
+              ('0.0.0.0', 8000),
+              H
+          ).serve_forever()
           EOF
+      
           : > /tmp/zt-hits
+      
           while true; do
-            ok=$(sort -u /tmp/zt-hits 2>/dev/null | sed '/^$/d' | wc -l)
+            ok=$(sort -u /tmp/zt-hits 2>/dev/null |
+              sed '/^$/d' |
+              wc -l)
+      
+            echo "hits: $ok/3"
+      
             [ "${ok:-0}" -ge 3 ] && break
-            done=$(gh api "repos/$REPO/actions/runs/$RUN_ID/jobs" --jq '
-              ([.jobs[] | select(.name | startswith("build"))] | length >= 3) and
-              ([.jobs[] | select(.name | startswith("build")) | .conclusion] | all(. != null))')
-            [ "$done" = "true" ] && break
+      
             sleep 5
           done
+      
+          echo "All build jobs reached serve."
+          cat /tmp/zt-hits
 
   build:
     strategy:
