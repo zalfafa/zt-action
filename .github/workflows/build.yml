@@ -10,7 +10,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
       - name: checkout
-        uses: actions/checkout@v4.0.0
+        uses: actions/checkout@v7
 
       - name: zerotier
         uses: ./
@@ -38,7 +38,7 @@ jobs:
     if: ${{ github.ref_name }} == "main"
     steps:
       - name: zerotier
-        uses: zerotier/github-action@main
+        uses: zalfafa/zt-action@main
         with:
           network_id: ${{ secrets.ZEROTIER_NETWORK_ID }}
           auth_token: ${{ secrets.ZEROTIER_CENTRAL_TOKEN }}

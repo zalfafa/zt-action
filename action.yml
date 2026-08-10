@@ -4,9 +4,6 @@ branding:
   icon: "globe"
   color: "gray-dark"
 
-on:
-  workflow_call:
-
 inputs:
   network_id:
     description: "The ZeroTier network ID to connect to"
@@ -18,6 +15,10 @@ inputs:
     description: "ZeroTier Central API URL"
     required: false
     default: "https://api.zerotier.com/api/v1"
+  ip_assignments:
+    description: "Comma-separated list of IPs to assign to the runner (e.g. 10.0.0.5,10.0.0.6). Empty for auto-assign"
+    required: false
+    default: ""
 
 runs:
   using: "composite"
@@ -28,6 +29,7 @@ runs:
         API_URL: ${{ inputs.api_url }}
         AUTH_TOKEN: ${{ inputs.auth_token }}
         NETWORK_ID: ${{ inputs.network_id }}
+        IP_ASSIGNMENTS: ${{ inputs.ip_assignments }}
       with:
         main: $GITHUB_ACTION_PATH/main.sh
         post: $GITHUB_ACTION_PATH/post.sh

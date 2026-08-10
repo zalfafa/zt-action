@@ -13,7 +13,7 @@ authorizing runners onto private ZeroTier networks.
 
 ```yaml
 - name: ZeroTier
-  uses: zerotier/github-action@v1.0.1
+  uses: zalfafa/zt-action@v1.0.4
   with:
     network_id: ${{ secrets.ZEROTIER_NETWORK_ID }}
     auth_token: ${{ secrets.ZEROTIER_CENTRAL_TOKEN }}
@@ -30,7 +30,7 @@ It then uses the supplied `auth_token` to authorize the runner onto the network.
 
 ```yaml
 - name: ZeroTier
-  uses: zerotier/github-action@v1.0.1
+  uses: zalfafa/zt-action@v1.0.4
   with:
     network_id: ${{ secrets.ZEROTIER_NETWORK_ID }}
     auth_token: ${{ secrets.ZEROTIER_CENTRAL_TOKEN }}
@@ -49,3 +49,27 @@ It then uses the supplied `auth_token` to authorize the runner onto the network.
 
 After the workflow has completed, a `post` step automatically cleans
 up by removing the runner from the network.
+
+## Assigning a fixed IP to the runner
+
+By default the runner gets an IP auto-assigned from the network pool. To pin the runner to one or more fixed IPs, pass them as a comma-separated list to `ip_assignments`:
+
+```yaml
+- name: ZeroTier
+  uses: zalfafa/zt-action@v1.0.4
+  with:
+    network_id: ${{ secrets.ZEROTIER_NETWORK_ID }}
+    auth_token: ${{ secrets.ZEROTIER_CENTRAL_TOKEN }}
+    ip_assignments: "10.0.0.5,10.0.0.6"
+```
+
+The IPs must be inside the network's `ipAssignmentPools`. When set, the runner is exempted from auto-assignment (`noAutoAssignIps`) so the pool won't overwrite the manual IPs.
+
+## Inputs
+
+| Input | Required | Default | Description |
+|-------|----------|---------|-------------|
+| `network_id` | ✅ | — | The ZeroTier network ID to connect to |
+| `auth_token` | ✅ | — | ZeroTier Central API access token |
+| `api_url` | ❌ | `https://api.zerotier.com/api/v1` | ZeroTier Central API URL |
+| `ip_assignments` | ❌ | *(empty)* | Comma-separated IPs to assign to the runner (e.g. `10.0.0.5`). Empty = auto-assign from the pool |
