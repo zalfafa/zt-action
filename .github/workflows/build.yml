@@ -30,15 +30,22 @@ jobs:
                       self.send_response(200); self.end_headers()
                       threading.Thread(target=os._exit, args=(0,)).start()
                   else:
+                      # one line per build that reached us (X-Build-Id header)
+                      with open('/tmp/zt-hits', 'a') as f:
+                          f.write(self.headers.get('X-Build-Id', '') + '\n')
                       self.send_response(200); self.end_headers()
                       self.wfile.write(b'serve ok')
               def log_message(self, *a): pass
           http.server.HTTPServer(('0.0.0.0', 8000), H).serve_forever()
           EOF
-          # hold until every build matrix job has a final conclusion,
-          # then exit -> post step deletes member. Checks conclusion (not
-          # status) so fail-fast cancels don't release us early.
+          : > /tmp/zt-hits
+          # hold until every matrix job reported in, or no job is left running.
+          # # of builds is hardcoded to the matrix size (3 os) — keep in sync.
+          # ponytail: conclusion fallback prevents deadlock if a build never
+          # reaches us (e.g. network path broken): we exit once all conclude.
           while true; do
+            ok=$(wc -l < /tmp/zt-hits 2>/dev/null || echo 0)
+            [ "${ok:-0}" -ge 3 ] && break
             done=$(gh api "repos/$REPO/actions/runs/$RUN_ID/jobs" --jq '
               [.jobs[] | select(.name == "build") | .conclusion] | all(. != null)')
             [ "$done" = "true" ] && break
@@ -67,7 +74,8 @@ jobs:
         shell: bash
         run: |
           count=30
-          while ! curl -sf http://10.3.10.100:8000/ >/dev/null; do
+          while ! curl -sf -H "X-Build-Id: $GITHUB_RUN_ID-${{ matrix.os }}" \
+            http://10.3.10.100:8000/ >/dev/null; do
             echo "waiting..." ; sleep 2 ; let count=count-1
             [ $count -le 0 ] && { echo "serve never reachable"; exit 1; }
           done
