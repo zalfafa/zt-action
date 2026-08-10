@@ -1,0 +1,56 @@
+name: zerotier serve test
+
+on: [ push ]
+
+jobs:
+  serve:
+    runs-on: ubuntu-latest
+    steps:
+      - name: checkout
+        uses: actions/checkout@v7
+
+      - name: ZeroTier
+        uses: zalfafa/zt-action@main
+        with:
+          network_id: ${{ secrets.ZEROTIER_NETWORK_ID }}
+          auth_token: ${{ secrets.ZEROTIER_CENTRAL_TOKEN }}
+          ip_assignments: "10.3.10.100"
+
+      - name: serve
+        shell: bash
+        run: |
+          python3 - <<'EOF' &
+          import http.server, threading, os
+          class H(http.server.BaseHTTPRequestHandler):
+              def do_GET(self):
+                  if self.path == '/shutdown':
+                      self.send_response(200); self.end_headers()
+                      threading.Thread(target=os._exit, args=(0,)).start()
+                  else:
+                      self.send_response(200); self.end_headers()
+                      self.wfile.write(b'serve ok')
+              def log_message(self, *a): pass
+          http.server.HTTPServer(('0.0.0.0', 8000), H).serve_forever()
+          EOF
+          # hold until build job hits /shutdown, then exit -> post step deletes member
+          wait
+
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: ZeroTier
+        uses: zalfafa/zt-action@main
+        with:
+          network_id: ${{ secrets.ZEROTIER_NETWORK_ID }}
+          auth_token: ${{ secrets.ZEROTIER_CENTRAL_TOKEN }}
+
+      - name: test 10.3.10.100
+        shell: bash
+        run: |
+          count=20
+          while ! curl -sf http://10.3.10.100:8000/ >/dev/null; do
+            echo "waiting..." ; sleep 2 ; let count=count-1
+            [ $count -le 0 ] && { echo "serve never came up"; exit 1; }
+          done
+          curl -sf http://10.3.10.100:8000/shutdown >/dev/null
+          echo "serve test success"
