@@ -35,16 +35,19 @@ jobs:
               def log_message(self, *a): pass
           http.server.HTTPServer(('0.0.0.0', 8000), H).serve_forever()
           EOF
-          # hold until the build matrix finishes, then exit -> post step deletes member
+          # hold until every build matrix job has a final conclusion,
+          # then exit -> post step deletes member. Checks conclusion (not
+          # status) so fail-fast cancels don't release us early.
           while true; do
             done=$(gh api "repos/$REPO/actions/runs/$RUN_ID/jobs" --jq '
-              [.jobs[] | select(.name == "build") | .status] | all(. == "completed")')
+              [.jobs[] | select(.name == "build") | .conclusion] | all(. != null)')
             [ "$done" = "true" ] && break
-            sleep 15
+            sleep 5
           done
 
   build:
     strategy:
+      fail-fast: false
       matrix:
         os: [ ubuntu-latest, macos-latest, windows-latest ]
     runs-on: ${{ matrix.os }}
